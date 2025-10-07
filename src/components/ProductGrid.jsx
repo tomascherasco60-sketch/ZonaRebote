@@ -43,7 +43,17 @@ function ProductCard({ product, addToCart }) {
             {product.oldPrice && <div className="old-price">${product.oldPrice.toLocaleString()}</div>}
           </div>
         </div>
-        <button className="add-to-cart" onClick={() => addToCart({ ...product, size: selectedSize })}>
+        <button
+          className="add-to-cart"
+          onClick={() => addToCart({
+            name: product.name,
+            description: product.description,
+            image: product.image,
+            price: product.price,
+            oldPrice: product.oldPrice,
+            size: selectedSize // puede ser '' si no seleccionó
+          })}
+        >
           <i className="fas fa-cart-plus"></i> Agregar al Carrito
         </button>
       </div>

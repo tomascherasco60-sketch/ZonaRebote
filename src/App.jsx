@@ -1,3 +1,4 @@
+import './App.css';
 import { useState } from 'react';
 import Header from './components/Header.jsx';
 import Hero from './components/Hero.jsx';
@@ -8,17 +9,19 @@ import Footer from './components/Footer.jsx';
 import CartModal from './components/CartModal.jsx';
 import { products } from './data/products.js';
 import Promo from './components/Promo.jsx';
-import './App.css';
 
 export default function App() {
   const [cart, setCart] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [showFrame, setShowFrame] = useState(false);
   const alias = 'zona.rebote.mp';
-  ;
 
   const addToCart = (product) => {
-    setCart([...cart, product]);
+    setCart((prev) => [...prev, product]);
+  };
+
+  const updateCartItem = (index, updatedItem) => {
+    setCart((prev) => prev.map((it, i) => (i === index ? { ...it, ...updatedItem } : it)));
   };
 
   const removeFromCart = (index) => {
@@ -29,15 +32,14 @@ export default function App() {
     setShowFrame(true);
   };
 
-  const total = cart.reduce((sum, item) => sum + item.price, 0);
-  
+  const total = cart.reduce((sum, item) => sum + (typeof item.price === 'number' ? item.price : 0), 0);
 
   return (
     <>
       <Header cartCount={cart.length} onToggleCart={() => setCartOpen(!cartOpen)} />
       <Hero />
       <ProductGrid products={products} addToCart={addToCart} />
-      <Promo />
+      <Promo addToCart={addToCart} />
       <Features />
       <FAQ />
       <Footer />
@@ -46,17 +48,20 @@ export default function App() {
         onClose={() => setCartOpen(false)}
         cart={cart}
         removeFromCart={removeFromCart}
+        updateCart={updateCartItem}
         total={total}
-        onFinalize={finalizePurchase} // <-- pasar función aquí
+        onFinalize={finalizePurchase}
       />
 
-      {/* Frame de alias */}
       {showFrame && (
         <div className="purchase-frame" role="dialog" aria-modal="true">
           <div className="frame-card">
             <h3>Gracias por tu compra 🎉</h3>
             <p>
               Alias: <strong>{alias}</strong>
+            </p>
+            <p>
+              Total de la compra: <strong>${total.toLocaleString()}</strong>
             </p>
 
             <div className="frame-actions">
@@ -81,5 +86,5 @@ export default function App() {
         </div>
       )}
     </>
-  );  
+  );
 }
