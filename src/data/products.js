@@ -2,7 +2,7 @@ export const products = [
   {
     name: "Short Los Angeles",
     description: "Tela premium respirable, costuras reforzadas, ajuste perfecto",
-    image: "https://github.com/tomascherasco60-sketch/ZonaRebote/blob/main/public/img/df508b7a-ccaa-42f2-9b15-c519f6d2cec0.jpeg?raw=true",
+    image: "public/img/df508b7a-ccaa-42f2-9b15-c519f6d2cec0.jpeg",
     price: 13500,
     oldPrice: 20000,
     colors: ["#ffffff", "#1000f3"],
@@ -11,7 +11,7 @@ export const products = [
   {
     name: "Short De Chicago",
     description: "Tela premium respirable, costuras reforzadas, ajuste perfecto",
-    image: "https://github.com/tomascherasco60-sketch/ZonaRebote/blob/main/public/img/chicago.jpeg?raw=true",
+    image: "public/img/chicago.jpeg",
     price: 13500,
     oldPrice: 20000,
     colors: ["#ffffff", "#f30000ff"],
@@ -20,7 +20,7 @@ export const products = [
   {
     name: "Short Celtics",
     description: "Tela premium respirable, costuras reforzadas, ajuste perfecto",
-    image: "https://github.com/tomascherasco60-sketch/ZonaRebote/blob/main/public/img/celtics.jpeg?raw=trueg",
+    image: "public/img/celtics.jpeg",
     price: 13500,
     oldPrice: 20000,
     colors: ["#ffffff", "#1daf00ff"],
@@ -29,7 +29,7 @@ export const products = [
   {
     name: "Short Jordan",
     description: "Tela premium respirable, costuras reforzadas, ajuste perfecto",
-    image: "https://github.com/tomascherasco60-sketch/ZonaRebote/blob/main/public/img/jordan.jpeg?raw=true",
+    image: "public/img/jordan.jpeg",
     price: 13500,
     oldPrice: 20000,
     colors: ["#ffffff", "#4e4e4eff"],
@@ -38,7 +38,7 @@ export const products = [
   {
     name: "Short de los Raptors",
     description: "Tela premium respirable, costuras reforzadas, ajuste perfecto",
-    image: "https://github.com/tomascherasco60-sketch/ZonaRebote/blob/main/public/img/raptors.jpeg?raw=true",
+    image: "public/img/raptors.jpeg",
     price: 13500,
     oldPrice: 20000,
     colors: ["#ffffff", "#3e0068ff", "#000000ff"],
@@ -47,7 +47,7 @@ export const products = [
   {
     name: "Short NY",
     description: "Tela premium respirable, costuras reforzadas, ajuste perfecto",
-    image: "https://github.com/tomascherasco60-sketch/ZonaRebote/blob/main/public/img/ja.jpeg?raw=trueg",
+    image: "public/img/ja.jpeg",
     price: 13500,
     oldPrice: 20000,
     colors: ["#ffffff", "#424240ff"],
@@ -56,7 +56,7 @@ export const products = [
   {
     name: "Short de los Bulls",
     description: "Tela premium respirable, costuras reforzadas, ajuste perfecto",
-    image: "https://github.com/tomascherasco60-sketch/ZonaRebote/blob/main/public/img/bulls.jpeg?raw=true",
+    image: "public/img/bulls.jpeg",
     price: 13500,
     oldPrice: 20000,
     colors: ["#ffffff", "#f30000ff"],
@@ -65,7 +65,7 @@ export const products = [
   {
     name: "Short de los Boston",
     description: "Tela premium respirable, costuras reforzadas, ajuste perfecto",
-    image: "https://github.com/tomascherasco60-sketch/ZonaRebote/blob/main/public/img/boston.jpeg?raw=true",
+    image: "public/img/boston.jpeg",
     price: 13500,
     oldPrice: 20000,
     colors: ["#ffffff", "#306300ff ","#bd8100ff"],
@@ -74,7 +74,7 @@ export const products = [
   {
     name: "Short de River",
     description: "Tela premium respirable, costuras reforzadas, ajuste perfecto",
-    image: "https://github.com/tomascherasco60-sketch/ZonaRebote/blob/main/public/img/river.jpeg?raw=true",
+    image: "public/img/river.jpeg",
     price: 13500,
     oldPrice: 20000,
     colors: ["#ffffff", "#ff0303ff"],
