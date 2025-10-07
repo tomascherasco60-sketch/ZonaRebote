@@ -1,8 +1,11 @@
 import React from 'react'
 
-export default function CartModal({ isOpen, onClose, cart = [], removeFromCart = () => {}, total = 0 }) {
+export default function CartModal({ isOpen, onClose, cart = [], removeFromCart = () => {}, total = 0, onFinalize = () => {} }) {
   // formateador simple para miles (igual que en el HTML original)
   const fmt = (n) => (typeof n === 'number' ? n.toLocaleString() : '0')
+
+  // detectar artículos sin talle
+  const missingSizeItems = cart.filter(item => !item.size || item.size === '')
 
   return (
     <>
@@ -68,13 +71,19 @@ export default function CartModal({ isOpen, onClose, cart = [], removeFromCart =
           Total: ${fmt(total)}
         </div>
 
+        {/* Mostrar aviso si faltan talles */}
+        {missingSizeItems.length > 0 && (
+          <p style={{ color: '#b33', marginTop: 8, fontWeight: 600 }}>
+            Seleccioná talle para: {missingSizeItems.map(it => it.name).join(', ')}
+          </p>
+        )}
+
         <button
-          className="cta-button"
+          className="cta-button modal-button modal-finalize"
           style={{ width: '100%', marginTop: 20 }}
-          onClick={() => {
-            // Placeholder: reemplazá por la lógica de checkout que uses
-            alert('Función de compra no implementada en este demo.')
-          }}
+          onClick={() => onFinalize()}
+          disabled={missingSizeItems.length > 0}
+          title={missingSizeItems.length > 0 ? 'Seleccioná talle para todos los artículos' : 'Finalizar compra'}
         >
           Finalizar Compra
         </button>

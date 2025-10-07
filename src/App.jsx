@@ -8,11 +8,14 @@ import Footer from './components/Footer.jsx';
 import CartModal from './components/CartModal.jsx';
 import { products } from './data/products.js';
 import Promo from './components/Promo.jsx';
+import './App.css';
 
 export default function App() {
   const [cart, setCart] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [showFrame, setShowFrame] = useState(false);
+  const alias = 'zona.rebote.mp';
+  ;
 
   const addToCart = (product) => {
     setCart([...cart, product]);
@@ -27,6 +30,7 @@ export default function App() {
   };
 
   const total = cart.reduce((sum, item) => sum + item.price, 0);
+  
 
   return (
     <>
@@ -43,15 +47,39 @@ export default function App() {
         cart={cart}
         removeFromCart={removeFromCart}
         total={total}
+        onFinalize={finalizePurchase} // <-- pasar función aquí
       />
+
+      {/* Frame de alias */}
       {showFrame && (
-        <div className="purchase-frame">
-          <h3>Gracias por tu compra</h3>
-          <p>Alias: <strong>zona.rebote.mp</strong></p>
-          <button onClick={() => navigator.clipboard.writeText('zona.rebote.mp')}>Copiar Alias</button>
-          <button onClick={() => setShowFrame(false)}>Cerrar</button>
+        <div className="purchase-frame" role="dialog" aria-modal="true">
+          <div className="frame-card">
+            <h3>Gracias por tu compra 🎉</h3>
+            <p>
+              Alias: <strong>{alias}</strong>
+            </p>
+
+            <div className="frame-actions">
+              <button
+                className="modal-button modal-copy"
+                onClick={() => {
+                  navigator.clipboard.writeText(alias);
+                  alert('Alias copiado al portapapeles ✅');
+                }}
+              >
+                Copiar Alias
+              </button>
+
+              <button
+                className="modal-button modal-close"
+                onClick={() => setShowFrame(false)}
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </>
-  );
+  );  
 }
