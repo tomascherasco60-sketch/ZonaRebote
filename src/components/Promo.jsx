@@ -196,21 +196,24 @@ export default function Promo({ addToCart }) {
                         </option>
                       ))}
                     </select>
-                  </div>
-
-                  {/* Imagen de vista previa para cada pantalón */}
-                  <div
+					<label >Imagen:</label>
+					<div
                     className={`model-preview ${
                       detail.model ? 'has-image' : ''
                     }`}
                   >
                     {detail.model && (
-                      <img
+                      <img 
                         src={detail.model}
                         alt={`Vista previa ${i + 1}`}
+						style={{width: '100px', height: '100px'}}
                       />
                     )}
                   </div>
+                  </div>
+
+                  
+                  
                 </div>
               ))}
             </div>
