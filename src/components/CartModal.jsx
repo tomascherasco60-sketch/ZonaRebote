@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function CartModal({ isOpen, onClose, cart = [], removeFromCart = () => {}, updateCart = () => {}, total = 0, onFinalize = () => {} }) {
+export default function CartModal({ isOpen, onClose, cart = [], removeFromCart = () => {}, updateCart = () => {}, total = 0, onFinalize = () => {}, onClearCart = () => {} }) {
   // formateador simple para miles (igual que en el HTML original)
   const fmt = (n) => (typeof n === 'number' ? n.toLocaleString() : '0');
   const SIZES = ['S','M','L','XL','XXL'];

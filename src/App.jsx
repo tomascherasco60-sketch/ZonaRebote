@@ -32,6 +32,13 @@ export default function App() {
     setShowFrame(true);
   };
 
+  // vacía el carrito y cierra el frame de compra
+  const clearAndClose = () => {
+    setCart([]);
+    setShowFrame(false);
+    setCartOpen(false);
+  };
+
   const total = cart.reduce((sum, item) => sum + (typeof item.price === 'number' ? item.price : 0), 0);
 
   return (
@@ -77,7 +84,10 @@ export default function App() {
 
               <button
                 className="modal-button modal-close"
-                onClick={() => setShowFrame(false)}
+                onClick={() => {
+                  // al cerrar después de la compra, limpiamos el carrito
+                  clearAndClose();
+                }}
               >
                 Cerrar
               </button>
