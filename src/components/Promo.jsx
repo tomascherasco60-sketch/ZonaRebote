@@ -1,218 +1,210 @@
 import { useEffect, useState } from 'react';
 import './Promo.css';
 
+// 📌 Definimos las promociones con cantidad máxima seleccionable
 const promoData = [
 	{
 		title: 'Promo 2x22000',
 		text: 'Descuento en el comienzo de la Primavera.',
 		price: 22000,
-		images: ['/img/jordan.jpeg','/img/bulls.jpeg', '/img/ja.jpeg', '/img/celtics.jpeg','/img/boston.jpeg','/img/raptors.jpeg','img/chicago.jpeg','/img/df508b7a-ccaa-42f2-9b15-c519f6d2cec0.jpeg']
+		maxItems: 2, // 👈 Solo 2 pantalones seleccionables
+		images: [
+			'/img/raptors.jpeg',
+			'/img/ja.jpeg',
+			'/img/celtics.jpeg',
+			'/img/jordan.jpeg',
+			'/img/bulls.jpeg',
+			'/img/df508b7a-ccaa-42f2-9b15-c519f6d2cec0.jpeg',
+			'/img/river.jpeg',
+			'/img/chicago.jpeg',
+			'/img/boston.jpeg'
+		]
 	},
 	{
 		title: 'Promo 3x2',
-		text: 'Compra 3 al precio de 33000 ',
+		text: 'Compra 3 al precio de 33000',
 		price: 33000,
-		images: ['/img/jordan.jpeg','/img/bulls.jpeg', '/img/ja.jpeg', '/img/celtics.jpeg','/img/boston.jpeg','/img/raptors.jpeg','img/chicago.jpeg','/img/df508b7a-ccaa-42f2-9b15-c519f6d2cec0.jpeg']
+		maxItems: 3, // 👈 Solo 3 pantalones
+		images: [
+			'/img/raptors.jpeg',
+			'/img/ja.jpeg',
+			'/img/celtics.jpeg',
+			'/img/jordan.jpeg',
+			'/img/bulls.jpeg',
+			'/img/df508b7a-ccaa-42f2-9b15-c519f6d2cec0.jpeg',
+			'/img/river.jpeg',
+			'/img/chicago.jpeg',
+			'/img/boston.jpeg'
+		]
 	},
 	{
 		title: 'Promo para jugadores de Basket',
 		text: 'Promociona y llevate un descuento',
 		price: 12000,
-		images: ['/img/jordan.jpeg','/img/bulls.jpeg', '/img/ja.jpeg', '/img/celtics.jpeg','/img/boston.jpeg','/img/raptors.jpeg','img/chicago.jpeg','/img/df508b7a-ccaa-42f2-9b15-c519f6d2cec0.jpeg']
+		maxItems: 1, // 👈 Solo 1 pantalón
+		images: [
+			'/img/raptors.jpeg',
+			'/img/ja.jpeg',
+			'/img/celtics.jpeg',
+			'/img/jordan.jpeg',
+			'/img/bulls.jpeg',
+			'/img/df508b7a-ccaa-42f2-9b15-c519f6d2cec0.jpeg',
+			'/img/river.jpeg',
+			'/img/chicago.jpeg',
+			'/img/boston.jpeg'
+		]
 	}
 ];
 
-const AVAILABLE_SIZES = ['S','M','L','XL','XXL'];
-
-function getQtyFromTitle(title) {
-  const m = title.match(/(\d)\s*x/i);
-  return m ? Number(m[1]) : 1;
-}
-
-// añadido: helper para convertir ruta en nombre legible
-function getModelNameFromPath(path) {
-  if (!path) return '';
-  try {
-    const parts = path.split('/');
-    const file = parts[parts.length - 1];
-    const name = file.split('.')[0];
-    const pretty = name.replace(/[-_%20]+/g, ' ').trim();
-    return pretty.charAt(0).toUpperCase() + pretty.slice(1);
-  } catch {
-    return path;
-  }
-}
+const AVAILABLE_SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
+const pantNames = [
+	'Jordan', 'Chicago Bulls Rojo', 'Yankees', 'Celtics ', 'Toronto Raptors', 'Chicago Bulls negrp', 'River Plate', 'Boston Celtics ','Los Angeles Lakers'
+];
 
 export default function Promo({ addToCart }) {
-  const [indexes, setIndexes] = useState(promoData.map(() => 0));
+	const [selectedPromo, setSelectedPromo] = useState(null);
+	const [selectedDetails, setSelectedDetails] = useState([]);
+	const [indexes, setIndexes] = useState(promoData.map(() => 0));
 
-  const qtys = promoData.map(p => getQtyFromTitle(p.title));
+	// ⏳ Rotación automática de imágenes
+	useEffect(() => {
+		const interval = setInterval(() => {
+			setIndexes((prev) =>
+				prev.map((index, i) => (index + 1) % promoData[i].images.length)
+			);
+		}, 3000);
+		return () => clearInterval(interval);
+	}, []);
 
-  const [selectedSizes, setSelectedSizes] = useState(() =>
-    promoData.map((_, i) => Array(qtys[i]).fill(''))
-  );
+	// 🛒 Al hacer clic en agregar al carrito
+	const handleAddToCart = (promoIndex) => {
+		setSelectedPromo(promoIndex);
+		const promo = promoData[promoIndex];
+		setSelectedDetails(
+			Array(promo.maxItems).fill({ size: '', model: '' }) // 👉 Usamos maxItems
+		);
+	};
 
-  // NEW: selectedModels: store chosen image index per slot
-  const [selectedModels, setSelectedModels] = useState(() =>
-    promoData.map((p, i) => Array(qtys[i]).fill(0))
-  );
+	// 📝 Actualizar talle/modelo
+	const handleDetailChange = (index, field, value) => {
+		setSelectedDetails((prev) => {
+			const updated = [...prev];
+			updated[index] = { ...updated[index], [field]: value };
+			return updated;
+		});
+	};
 
-  const [sameSize, setSameSize] = useState(() => promoData.map(() => false));
+	// ❌ Cerrar ventana de selección
+	const handleCloseFrame = () => {
+		setSelectedPromo(null);
+	};
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setIndexes((prev) => prev.map((v, i) => (v + 1) % promoData[i].images.length));
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
+	// ✅ Confirmar selección
+	const handleConfirmSelection = () => {
+		if (selectedDetails.some((detail) => !detail.size || !detail.model)) {
+			alert('Por favor, selecciona todos los detalles.');
+			return;
+		}
 
-  function handleSelectSize(pIdx, slotIdx, size) {
-    setSelectedSizes(prev => {
-      const copy = prev.map(arr => [...arr]);
-      copy[pIdx][slotIdx] = size;
-      if (sameSize[pIdx]) copy[pIdx] = copy[pIdx].map(() => size);
-      return copy;
-    });
-  }
+		const promo = promoData[selectedPromo];
+		const cartItem = {
+			name: promo.title,
+			description: promo.text,
+			price: promo.price,
+			sizes: selectedDetails.map((detail) => detail.size),
+			models: selectedDetails.map((detail) => {
+				const idx = promo.images.indexOf(detail.model);
+				return pantNames[idx] || 'Modelo';
+			}),
+			image: promo.images[0]
+		};
 
-  // NEW: select model for a specific slot (image index from promoData[pIdx].images)
-  function handleSelectModel(pIdx, slotIdx, modelIndex) {
-    setSelectedModels(prev => {
-      const copy = prev.map(arr => [...arr]);
-      copy[pIdx][slotIdx] = modelIndex;
-      return copy;
-    });
-  }
+		if (typeof addToCart === 'function') {
+			addToCart(cartItem);
+		}
 
-  function handleToggleSameSize(pIdx, checked) {
-    setSameSize(prev => {
-      const copy = [...prev];
-      copy[pIdx] = checked;
-      return copy;
-    });
-    if (checked) {
-      setSelectedSizes(prev => {
-        const copy = prev.map(arr => [...arr]);
-        const first = copy[pIdx][0] || '';
-        if (first) copy[pIdx] = copy[pIdx].map(() => first);
-        return copy;
-      });
-    }
-  }
+		setSelectedPromo(null);
+	};
 
-  function handleAddPromo(pIdx) {
-    const qty = qtys[pIdx];
-    const sel = selectedSizes[pIdx];
+	return (
+		<section id="promos" className="promo-section">
+			<h2 className="promo-title">Promociones</h2>
+			<div className="promo-cards">
+				{promoData.map((promo, index) => (
+					<article className="promo-card" key={index}>
+						<div className="promo-image-wrap">
+							<img
+								src={promo.images[indexes[index]]}
+								alt={promo.title}
+								className="promo-image"
+							/>
+						</div>
+						<div className="promo-content">
+							<h3 className="promo-card-title">{promo.title}</h3>
+							<p className="promo-card-text">{promo.text}</p>
+							<p className="promo-price">${promo.price.toLocaleString()}</p>
+							<p className="promo-limit">Cantidad máx.: {promo.maxItems}</p>
+							<button
+								className="add-to-cart"
+								onClick={() => handleAddToCart(index)}
+							>
+								Agregar al Carrito
+							</button>
+						</div>
+					</article>
+				))}
+			</div>
 
-    if (sel.some(s => !s)) {
-      return;
-    }
+			{selectedPromo !== null && (
+				<div className="promo-frame-overlay">
+					<div className="promo-frame">
+						<img
+							src="/img/Logo%20de%20ZonaRebote.png"
+							alt="Logo"
+							className="promo-frame-logo"
+						/>
+						<h3>Selecciona los detalles</h3>
+						<div className="sizes-grid">
+							{selectedDetails.map((detail, i) => (
+								<div key={i} className="size-slot">
+									<h4>Pantalón {i + 1}</h4>
+									<label>Talle:</label>
+									<select
+										value={detail.size}
+										onChange={(e) =>
+											handleDetailChange(i, 'size', e.target.value)
+										}
+									>
+										<option value="">Seleccionar</option>
+										{AVAILABLE_SIZES.map((size) => (
+											<option key={size} value={size}>
+												{size}
+											</option>
+										))}
+									</select>
 
-    // NEW: include models array (image paths) per slot
-    const models = (selectedModels[pIdx] || []).map(idx => promoData[pIdx].images[idx]);
-
-    const promoItem = {
-      name: promoData[pIdx].title,
-      description: promoData[pIdx].text,
-      image: promoData[pIdx].images[indexes[pIdx]],
-      price: promoData[pIdx].price,
-      sizes: [...sel],
-      models, // array of image paths per unit
-      quantity: qty
-    };
-
-    if (typeof addToCart === 'function') addToCart(promoItem);
-    alert('Promo agregada al carrito');
-  }
-
-  return (
-    <section id="promos" className="promo-section">
-      <h2 className="promo-title">Promociones</h2>
-      <div className="promo-cards">
-        {promoData.map((p, i) => {
-          const qty = qtys[i];
-          const showSameSizeOption = qty > 1 && !/jugador/i.test(p.title);
-
-          return (
-            <article className="product-card" key={i}>
-              <div className="product-image">
-                <img
-                  src={p.images[indexes[i]]}
-                  alt={p.title}
-                  className="promo-image"
-                  onError={(e) => (e.target.style.display = 'none')}
-                />
-                <span className="badge">PROMO</span>
-              </div>
-
-              <div className="product-info">
-                <h3 className="product-name">{p.title}</h3>
-                <p className="product-description">{p.text}</p>
-
-                <div className="product-price">
-                  <div>
-                    <div className="price">${p.price.toLocaleString()}</div>
-                  </div>
-                </div>
-
-                {/* controles de talles + modelo por slot */}
-                <div className="promo-sizes">
-                  {showSameSizeOption && (
-                    <label className="same-size">
-                      <input
-                        type="checkbox"
-                        checked={sameSize[i]}
-                        onChange={(e) => handleToggleSameSize(i, e.target.checked)}
-                      /> Mismo talle en todas las unidades
-                    </label>
-                  )}
-
-                  <div className="sizes-grid">
-                    {Array.from({ length: qty }).map((_, slot) => (
-                      <div className="size-slot" key={slot}>
-                        <div className="size-label">Unidad {slot + 1}</div>
-
-                        {/* cambiado: mostrar nombre del modelo en vez de miniatura */}
-                        <div className="model-list">
-                          {p.images.map((img, mIdx) => (
-                            <div
-                              key={mIdx}
-                              className={`model-name ${selectedModels[i][slot] === mIdx ? 'selected' : ''}`}
-                              onClick={() => handleSelectModel(i, slot, mIdx)}
-                            >
-                              {getModelNameFromPath(img)}
-                            </div>
-                          ))}
-                        </div>
-
-                        <div className="sizes" style={{ marginTop: 8 }}>
-                          {AVAILABLE_SIZES.map((s) => (
-                            <div
-                              key={s}
-                              className={`size-option ${selectedSizes[i][slot] === s ? 'active' : ''}`}
-                              onClick={() => handleSelectSize(i, slot, s)}
-                            >
-                              {s}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <button
-                  className="add-to-cart"
-                  onClick={() => handleAddPromo(i)}
-                >
-                  Agregar al Carrito
-                </button>
-              </div>
-            </article>
-          )
-        })}
-      </div>
-    </section>
-  );
+									<label>Modelo:</label>
+									<select
+										value={detail.model}
+										onChange={(e) =>
+											handleDetailChange(i, 'model', e.target.value)
+										}
+									>
+										<option value="">Seleccionar</option>
+										{promoData[selectedPromo].images.map((img, idx) => (
+											<option key={idx} value={img}>
+												{pantNames[idx] || `Modelo ${idx + 1}`}
+											</option>
+										))}
+									</select>
+								</div>
+							))}
+						</div>
+						<button onClick={handleConfirmSelection}>Confirmar</button>
+						<button onClick={handleCloseFrame}>Cerrar</button>
+					</div>
+				</div>
+			)}
+		</section>
+	);
 }
-
