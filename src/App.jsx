@@ -22,7 +22,7 @@ export default function App() {
 
   const updateCartItem = (index, updatedItem) => {
     setCart((prev) => prev.map((it, i) => (i === index ? { ...it, ...updatedItem } : it)));
-  };
+  }
 
   const removeFromCart = (index) => {
     setCart(cart.filter((_, i) => i !== index));
@@ -30,7 +30,7 @@ export default function App() {
 
   const finalizePurchase = () => {
     setShowFrame(true);
-  };
+  }
 
   // vacía el carrito y cierra el frame de compra
   const clearAndClose = () => {
@@ -45,6 +45,7 @@ export default function App() {
     <>
       <Header cartCount={cart.length} onToggleCart={() => setCartOpen(!cartOpen)} />
       <Hero />
+
       <ProductGrid products={products} addToCart={addToCart} />
       <Promo addToCart={addToCart} />
       <Features />
@@ -96,5 +97,5 @@ export default function App() {
         </div>
       )}
     </>
-  );
+  )
 }
