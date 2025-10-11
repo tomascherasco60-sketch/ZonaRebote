@@ -58,8 +58,8 @@ const promoData = [
 
 const AVAILABLE_SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
 const pantNames = [
-  'Jordan', 'Chicago Bulls Rojo', 'Yankees', 'Celtics ', 'Toronto Raptors',
-  'Chicago Bulls negro', 'River Plate', 'Boston Celtics', 'Los Angeles Lakers'
+  'Raptors', 'Yankees', 'Celtics', 'Jordan ', 'Chicago Bulls',
+  'Lakers', 'River Plate', 'Chicago Bulls', 'Boston Celtics'
 ];
 
 export default function Promo({ addToCart }) {

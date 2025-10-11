@@ -28,7 +28,7 @@ export default function FAQ() {
       question: "¿Cuánto demora el envío?",
       answer: (
         <>
-          <p>Los tiempos de envío son:</p>
+          <p><strong>Los tiempos de envío son:</strong></p>
           <ul>
             <li><strong>Córdoba Capital:</strong> 24-48 horas</li>
             <li><strong>Interior de Córdoba:</strong> 3-5 días hábiles</li>
@@ -42,7 +42,7 @@ export default function FAQ() {
       question: "¿Puedo cambiar o devolver?",
       answer: (
         <>
-          <p>Sí, aceptamos cambios y devoluciones dentro de los 15 días de recibido el producto, siempre que:</p>
+          <p><strong>Sí, aceptamos cambios y devoluciones dentro de los 15 días de recibido el producto, siempre que:</strong></p>
           <ul>
             <li>El pantalón esté en el estado en el cual fue entregado</li>
             <li>Conserves el packaging original</li>
@@ -56,7 +56,7 @@ export default function FAQ() {
       question: "¿Qué métodos de pago aceptan?",
       answer: (
         <>
-          <p>Aceptamos todos estos métodos:</p>
+          <p><strong>Aceptamos todos estos métodos:</strong></p>
           <ul>
             <li><strong>Transferencia bancaria:</strong> Cualquier banco</li>
             <li><strong>MercadoPago:</strong> Todas las opciones disponibles</li>
@@ -69,7 +69,7 @@ export default function FAQ() {
       question: "¿Cómo cuido mi pantalón?",
       answer: (
         <>
-          <p>Para mantener tu pantalón en perfecto estado:</p>
+          <p><strong>Para mantener tu pantalón en perfecto estado:</strong></p>
           <ul>
             <li>Lavar a mano o máquina en ciclo delicado</li>
             <li>Agua fría o tibia (máx 30°C)</li>

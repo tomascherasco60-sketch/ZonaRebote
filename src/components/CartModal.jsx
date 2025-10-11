@@ -94,7 +94,7 @@ export default function CartModal({ isOpen, onClose, cart = [], removeFromCart =
                         <div key={idx} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
                           {/* Mostrar nombre legible en lugar de la imagen */}
                           {Array.isArray(item.models) && item.models[idx] ? (
-                            <div style={{ width: 56, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: '1px solid #eee', background: '#fafafa', padding: '0 6px', fontSize: '0.85rem', color: '#333' }}>
+                            <div style={{ width: 56, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: '1px solid #eee', background: '#fafafa', padding: ' 6px', fontSize: '0.85rem', color: '#333',marginRight: '6px',marginBottom:'6px'}}>
                               {getModelName(item.models[idx])}
                             </div>
                           ) : null}
