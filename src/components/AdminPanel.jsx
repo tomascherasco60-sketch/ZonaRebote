@@ -165,32 +165,44 @@ export default function AdminPanel({ isAdmin, onLogout }) {
 
       {/* === SECCIÓN: TOP PRODUCTOS VENDIDOS === */}
       <section style={styles.recentOrders}>
-        <h2 style={styles.sectionTitle}>Top 5 Productos Vendidos (Últimos 10 días)</h2>
-        
-        {topProducts.length === 0 ? (
-            <p>No hay ventas registradas para generar el Top 5.</p>
-        ) : (
-            <div style={styles.tableContainer}>
-                <table style={styles.table}>
-                    <thead>
-                        <tr style={styles.tableHeaderRow}>
-                            <th style={styles.tableHeader}>#</th>
-                            <th style={styles.tableHeader}>Producto y Talla</th>
-                            <th style={styles.tableHeader}>Unidades Vendidas</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {topProducts.map((product, index) => (
-                            <tr key={product.name} style={styles.tableRow}>
-                                <td style={{...styles.tableCell, fontWeight: 'bold'}}>{index + 1}</td>
-                                <td style={styles.tableCell}>{product.name}</td>
-                                <td style={{...styles.tableCell, color: '#2ecc71', fontWeight: 'bold'}}>{product.quantity}</td>
-                            </tr>
+        <h2 style={styles.sectionTitle}>Órdenes por Estado (Últimos 10 días)</h2>
+
+        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', marginTop: 12 }}>
+          {['pending','processing','shipped','completed','cancelled'].map(statusKey => (
+            <div key={statusKey} style={{ flex: 1, background: '#fff', padding: 12, borderRadius: 8, boxShadow: '0 4px 10px rgba(0,0,0,0.06)' }}>
+              <h3 style={{ textTransform: 'capitalize', marginTop: 0 }}>{statusKey === 'pending' ? 'Pendiente' : statusKey === 'processing' ? 'En proceso' : statusKey === 'shipped' ? 'Enviado' : statusKey === 'completed' ? 'Completado' : 'Cancelado'}</h3>
+              <div style={{ minHeight: 80 }}>
+                {orders.filter(o => (o.status || 'pending') === statusKey).length === 0 ? (
+                  <p style={{ color: '#888' }}>Sin órdenes</p>
+                ) : (
+                  orders.filter(o => (o.status || 'pending') === statusKey).map(o => (
+                    <div key={o.id} style={{ border: '1px solid #eee', padding: 8, borderRadius: 6, marginBottom: 8 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ fontWeight: '700' }}>{o.id.substring(0,8)}...</div>
+                        <div style={{ fontSize: '0.85em', color: '#666' }}>{formatDate(o.date)}</div>
+                      </div>
+                      <div style={{ marginTop: 8, fontSize: '0.9em' }}>
+                        {(o.items || []).map((it, idx) => (
+                          <div key={idx}>{it.name} {it.size ? `(${it.size})` : ''} x{it.quantity || 1} - ${it.price}</div>
                         ))}
-                    </tbody>
-                </table>
+                      </div>
+                      <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ fontWeight: '700' }}>${(o.total || 0).toLocaleString()}</div>
+                        <select value={o.status || 'pending'} onChange={(e) => handleOrderStatusChange(o.id, e.target.value)}>
+                          <option value="pending">Pendiente</option>
+                          <option value="processing">En proceso</option>
+                          <option value="shipped">Enviado</option>
+                          <option value="completed">Completado</option>
+                          <option value="cancelled">Cancelado</option>
+                        </select>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
-        )}
+          ))}
+        </div>
       </section>
 
       {/* === SECCIÓN DE DETALLE DE ÓRDENES === */}

@@ -49,7 +49,9 @@ export default function CartModal({ isOpen, onClose, cart = [], removeFromCart =
       <div
         className={`cart-overlay ${isOpen ? 'active' : ''}`}
         onClick={onClose}
+        onTouchStart={onClose} // close on touch devices (Android) when tapping overlay
         aria-hidden={!isOpen}
+        style={{ touchAction: 'manipulation' }}
       ></div>
 
       {/* Modal lateral */}
@@ -60,13 +62,14 @@ export default function CartModal({ isOpen, onClose, cart = [], removeFromCart =
       >
         <div className="cart-header">
           <h2>Tu Carrito</h2>
+          {/* Visible black X in top-right */}
           <button
             className="close-cart"
             onClick={onClose}
             aria-label="Cerrar carrito"
-            style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#000', fontSize: '1.3rem' }}
           >
-            <i className="fas fa-times"></i>
+            <span style={{ fontWeight: 700 }}>✕</span>
           </button>
         </div>
 

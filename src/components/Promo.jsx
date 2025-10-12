@@ -66,6 +66,7 @@ export default function Promo({ addToCart }) {
   const [selectedPromo, setSelectedPromo] = useState(null);
   const [selectedDetails, setSelectedDetails] = useState([]);
   const [indexes, setIndexes] = useState(promoData.map(() => 0));
+  const [mainIndex, setMainIndex] = useState(0);
 
   // ⏳ Rotación automática de imágenes
   useEffect(() => {
@@ -76,6 +77,11 @@ export default function Promo({ addToCart }) {
     }, 3000);
     return () => clearInterval(interval);
   }, []);
+
+  // Keep mainIndex in sync with rotating index when modal opens
+  useEffect(() => {
+    if (selectedPromo != null) setMainIndex(indexes[selectedPromo] || 0);
+  }, [selectedPromo, indexes]);
 
   // 🛒 Al hacer clic en agregar al carrito
   const handleAddToCart = (promoIndex) => {
@@ -158,80 +164,59 @@ export default function Promo({ addToCart }) {
 
       {selectedPromo !== null && (
         <div className="promo-frame-overlay">
-          <div className="promo-frame">
-            <h3>Selecciona los detalles</h3>
-            <div className="sizes-grid">
-              {selectedDetails.map((detail, i) => (
-                <div key={i} className="size-slot">
-					
-					
-                  <div className="select-group">
-                    <h4>Pantalón {i + 1}</h4>
-                    <label>Talle:</label>
-                    <select
-                      value={detail.size}
-                      onChange={(e) =>
-                        handleDetailChange(i, 'size', e.target.value)
-                      }
-                    >
-                      <option value="">Seleccionar</option>
-                      {AVAILABLE_SIZES.map((size) => (
-                        <option key={size} value={size}>
-                          {size}
-                        </option>
-                      ))}
-                    </select>
-
-                    <label>Modelo:</label>
-                    <select
-                      value={detail.model}
-                      onChange={(e) =>
-                        handleDetailChange(i, 'model', e.target.value)
-                      }
-                    >
-                      <option value="">Seleccionar</option>
-                      {promoData[selectedPromo].images.map((img, idx) => (
-                        <option key={idx} value={img}>
-                          {pantNames[idx] || `Modelo ${idx + 1}`}
-                        </option>
-                      ))}
-                    </select>
-					<label >Imagen:</label>
-					<div
-                    className={`model-preview ${
-                      detail.model ? 'has-image' : ''
-                    }`}
-                  >
-                    {detail.model && (
-                      <img 
-                        src={detail.model}
-                        alt={`Vista previa ${i + 1}`}
-						style={{width: '100px', height: '100px'}}
-                      />
-                    )}
-                  </div>
-                  </div>
-
-                  
-                  
-                </div>
-              ))}
+          <div className="promo-modal v3">
+            <div className="modal-header">
+              <h3>{promoData[selectedPromo].title}</h3>
+              <button className="frame-close" onClick={handleCloseFrame} aria-label="Cerrar">×</button>
             </div>
 
-            {/* Botones en la parte inferior */}
-            <div className="frame-actions">
-              <button
-                className="modal-button modal-close"
-                onClick={handleCloseFrame}
-              >
-                Cerrar
-              </button>
-              <button
-                className="modal-button modal-finalize"
-                onClick={handleConfirmSelection}
-              >
-                Confirmar
-              </button>
+            <div className="modal-body">
+              <div className="left-col">
+                <div className="main-image">
+                  <img src={promoData[selectedPromo].images[mainIndex] || promoData[selectedPromo].images[0]} alt={promoData[selectedPromo].title} />
+                </div>
+                <div className="thumbs-row">
+                  {promoData[selectedPromo].images.map((img, idx) => (
+                    <button key={idx} type="button" className={`thumb-btn ${mainIndex === idx ? 'selected' : ''}`} onClick={() => setMainIndex(idx)}>
+                      <img src={img} alt={pantNames[idx] || `Modelo ${idx+1}`} />
+                    </button>
+                  ))}
+                </div>
+                <div className="promo-info">
+                  <p className="promo-frame-desc">{promoData[selectedPromo].text}</p>
+                  <p className="promo-frame-price">Precio: <strong>${promoData[selectedPromo].price.toLocaleString()}</strong></p>
+                </div>
+              </div>
+
+              <div className="right-col">
+                <div className="slots-scroll">
+                  {selectedDetails.map((detail, i) => (
+                    <div key={i} className="slot compact">
+                      <div className="slot-head"><strong>Pantalón {i + 1}</strong></div>
+                      <div className="sizes-grid compact">
+                        {AVAILABLE_SIZES.map((s) => (
+                          <button key={s} type="button" className={`size-option ${detail.size === s ? 'active' : ''}`} onClick={() => handleDetailChange(i, 'size', s)} aria-pressed={detail.size === s}>{s}</button>
+                        ))}
+                      </div>
+                      <div className="slot-models compact">
+                        {promoData[selectedPromo].images.map((img, idx) => (
+                          <button key={idx} type="button" className={`thumb-btn small ${detail.model === img ? 'selected' : ''}`} onClick={() => handleDetailChange(i, 'model', img)}>
+                            <img src={img} alt={`Modelo ${idx+1}`} />
+                          </button>
+                        ))}
+                      </div>
+                      <div className="slot-preview compact">
+                        {detail.model ? <img src={detail.model} alt={`Vista ${i+1}`} /> : <div className="empty-preview">Sin imagen</div>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="frame-actions">
+                  <button className="modal-button modal-close" onClick={handleCloseFrame}>Cerrar</button>
+                  <button className="modal-button modal-finalize" onClick={handleConfirmSelection}>Confirmar</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -10,14 +10,18 @@ import {
   setDoc,
   addDoc,
   serverTimestamp,
+  deleteDoc,
+  increment,
   onSnapshot as onDocSnapshot,
 } from 'firebase/firestore';
+import { products as localProducts } from '../data/products.js';
 
 // We'll use a BroadcastChannel to sync state across tabs (near-real-time) and fallback to localStorage
 const CHANNEL_NAME = 'zonarebote_admin_channel';
 
 export default function AdminDashboard() {
   const [products, setProducts] = useState([]);
+  const [editStocks, setEditStocks] = useState({});
   const [orders, setOrders] = useState([]);
   const [filteredRange, setFilteredRange] = useState({ from: null, to: null });
   const [newProduct, setNewProduct] = useState({ name: '', price: '', sizes: '', initialStock: 10, image: '' });
@@ -41,6 +45,20 @@ export default function AdminDashboard() {
       const arr = [];
       snap.forEach(d => arr.push({ id: d.id, ...d.data() }));
       setProducts(arr);
+      // initialize editable stocks map for firestore products
+      const map = {};
+      arr.forEach(p => { map[p.id] = { ...(p.stock || {}) }; });
+      // also initialize entries for local products that are not in Firestore
+      localProducts.forEach((lp, idx) => {
+        // find matching firestore product by name or image basename
+        const found = arr.find(x => x.name === lp.name || (x.image && lp.image && x.image.split('/').pop() === lp.image.split('/').pop()));
+        const key = found ? found.id : `local_${idx}`;
+        if (!map[key]) {
+          // if found, map was already set; else set from found.stock or defaults
+          map[key] = found ? { ...(found.stock || {}) } : (lp.sizes && lp.sizes.length ? lp.sizes.reduce((acc,s)=> (acc[s]=0, acc), {}) : { U: 0 });
+        }
+      });
+      setEditStocks(map);
       setLoading(false);
     }, (err) => {
       console.error('Error products snapshot', err);
@@ -184,58 +202,68 @@ export default function AdminDashboard() {
   const lastSaleDate = (meta && meta.lastSale) ? new Date(meta.lastSale) : (orders.length ? new Date(Math.max(...orders.map(o => new Date(o.date).getTime()))) : null);
 
   const handleStockChange = async (productId, sizeKey, newValue) => {
-    // update in Firestore
-    try {
-      const productDoc = doc(db, 'products', productId);
-      const product = products.find(p => p.id === productId);
-      if (!product) return;
-      const newStock = { ...(product.stock || {}), [sizeKey]: Number(newValue) };
-      await updateDoc(productDoc, { stock: newStock });
-      // Firestore snapshot will update local state
-    } catch (err) {
-      console.error('Error updating stock', err);
-      alert('No se pudo actualizar el stock. Revisa la consola.');
-    }
+    // update local editable state (use Save para persistir)
+    setEditStocks(s => ({ ...s, [productId]: { ...(s[productId]||{}), [sizeKey]: Number(newValue) } }));
   };
 
-  const handleReset = async () => {
-    if (!confirm('Confirmar: reiniciar totales de ventas e ingresos y restaurar stock inicial?')) return;
-
-    // Reset orders collection by marking a field 'resetAt' or deleting orders is heavy; we'll create a 'meta' doc
+  // Reset only totals (admin_meta/stats)
+  const handleResetTotals = async () => {
+    if (!confirm('Confirmar: reiniciar totales de ventas e ingresos?')) return;
     try {
-      // 1. Reset totals: We create a 'admin_meta' doc with counters
       const metaRef = doc(db, 'admin_meta', 'stats');
-      await setDoc(metaRef, { totalSales: 0, totalRevenue: 0, lastReset: new Date() });
-
-      // 2. Reset stock for all products to an initial value found in product.initialStock or to 10 as fallback
-      const productsSnapshot = await getDocs(collection(db, 'products'));
-      const batchPromises = [];
-      productsSnapshot.forEach((p) => {
-        const data = p.data();
-        const initial = data.initialStock || {}; // If developer seeded initialStock use it
-        const defaultStock = {};
-        // If initial is empty, try to create a reasonable default: set each size to 10
-        if (Object.keys(initial).length === 0) {
-          const sizes = data.sizes || Object.keys(data.stock || {});
-          sizes.forEach(s => defaultStock[s] = 10);
-        }
-        const toSet = Object.keys(initial).length ? initial : defaultStock;
-        const pRef = doc(db, 'products', p.id);
-        batchPromises.push(updateDoc(pRef, { stock: toSet }));
-      });
-
-      await Promise.all(batchPromises);
-
-      // 3. Save reset timestamp to localStorage and broadcast
+      await setDoc(metaRef, { totalSales: 0, totalRevenue: 0, lastReset: new Date() }, { merge: true });
       const now = new Date();
       localStorage.setItem('admin_last_reset', now.toISOString());
       try { const bc = new BroadcastChannel(CHANNEL_NAME); bc.postMessage('reset'); bc.close(); } catch (e) {}
       setLastReset(now);
-
-      alert('Reset completado');
+      alert('Totales reiniciados');
     } catch (err) {
-      console.error('Error al resetear datos', err);
-      alert('No se pudo completar el reseteo. Revisa la consola.');
+      console.error('Error al reiniciar totales', err);
+      alert('No se pudo reiniciar totales. Revisa la consola.');
+    }
+  };
+
+  // Process orders: archive completed and delete cancelled
+  const handleProcessOrders = async () => {
+    if (!confirm('Confirmar: archivar órdenes completadas y eliminar órdenes canceladas?')) return;
+    try {
+      const ordersSnapshot = await getDocs(collection(db, 'orders'));
+      let completedCount = 0;
+      let completedRevenue = 0;
+      let completedItems = 0;
+      const archivePromises = [];
+      const deletePromises = [];
+
+      ordersSnapshot.forEach(o => {
+        const data = o.data();
+        const id = o.id;
+        const status = (data.status || 'pending').toLowerCase();
+        if (status === 'cancelled') {
+          deletePromises.push(deleteDoc(doc(db, 'orders', id)));
+          return;
+        }
+        if (status === 'completed') {
+          completedCount += 1;
+          completedRevenue += Number(data.total || 0);
+          const itemsCount = (data.items || []).reduce((s,it) => s + (it.quantity || 1), 0);
+          completedItems += itemsCount;
+          const archived = { ...data, originalId: id, archivedAt: serverTimestamp() };
+          archivePromises.push(addDoc(collection(db, 'orders_archive'), archived));
+          deletePromises.push(deleteDoc(doc(db, 'orders', id)));
+        }
+      });
+
+      await Promise.all(archivePromises);
+      await Promise.allSettled(deletePromises);
+
+      if (completedCount > 0) {
+        const summaryRef = doc(db, 'orders_summary', 'totals');
+        await setDoc(summaryRef, { totalCompletedOrders: increment(completedCount), totalCompletedRevenue: increment(completedRevenue), totalCompletedItems: increment(completedItems) }, { merge: true });
+      }
+      alert('Procesamiento de órdenes completado');
+    } catch (e) {
+      console.error('Error procesando órdenes', e);
+      alert('No se pudo procesar las órdenes. Revisa la consola.');
     }
   };
 
@@ -243,6 +271,49 @@ export default function AdminDashboard() {
     // clear admin flag and try to close or redirect to login
     try { localStorage.removeItem('isAdmin'); } catch (e) {}
     try { window.close(); } catch (e) { window.location.href = '/admin/login'; }
+  };
+
+  const saveProductStock = async (productKey, localData = null) => {
+    try {
+      const sRaw = editStocks[productKey];
+      if (!sRaw) return alert('No hay cambios para guardar');
+
+      // Normalize values to numbers
+      const s = Object.keys(sRaw).reduce((acc, k) => ({ ...acc, [k]: Number(sRaw[k] || 0) }), {});
+
+      if (String(productKey).startsWith('local_')) {
+        // create new Firestore product from localData
+        const productPayload = {
+          name: localData.name || 'Sin nombre',
+          price: localData.price || 0,
+          sizes: localData.sizes || [],
+          stock: s,
+          image: localData.image || null,
+          createdAt: serverTimestamp(),
+        };
+        const ref = await addDoc(collection(db, 'products'), productPayload);
+        // after creating, update local editStocks to map the new doc id
+        setEditStocks(prev => ({ ...prev, [ref.id]: { ...s } }));
+        // Optionally remove the local_x entry to avoid duplicates (keep it for preview)
+        alert('Producto creado y stock guardado (id: ' + ref.id + ')');
+      } else {
+        const pRef = doc(db, 'products', productKey);
+        await updateDoc(pRef, { stock: s });
+        // ensure UI editStocks stays consistent
+        setEditStocks(prev => ({ ...prev, [productKey]: { ...s } }));
+        alert('Stock actualizado');
+      }
+    } catch (e) {
+      console.error('Error guardando stock', e);
+      alert('No se pudo guardar el stock. Revisa la consola.');
+    }
+  };
+
+  const adjustStock = (productKey, sizeKey, delta) => {
+    setEditStocks(s => {
+      const curr = (s[productKey] && s[productKey][sizeKey]) != null ? s[productKey][sizeKey] : 0;
+      return { ...s, [productKey]: { ...(s[productKey]||{}), [sizeKey]: Math.max(0, Number(curr) + Number(delta)) } };
+    });
   };
 
   if (loading) return <div style={{ padding: 40 }}>Cargando dashboard...</div>;
@@ -253,7 +324,8 @@ export default function AdminDashboard() {
         <div className="admin-header">
           <h1>Admin Dashboard</h1>
           <div className="admin-actions">
-            <button className="btn-danger" onClick={handleReset}>Reiniciar Totales y Stock</button>
+            <button className="btn-danger" onClick={handleResetTotals}>Reiniciar Totales</button>
+            <button className="btn-warning" onClick={handleProcessOrders}>Procesar Órdenes (completadas/canceladas)</button>
             <button className="btn-ghost" onClick={handleLogout}>Cerrar Sesión</button>
           </div>
         </div>
@@ -291,29 +363,74 @@ export default function AdminDashboard() {
 
         <div className="panel">
           <h3>Productos y Stock</h3>
-          <div style={{ maxHeight: 520, overflow: 'auto' }}>
-            <table className="product-table">
-              <thead>
-                <tr>
-                  <th>Producto</th>
-                  <th>Talla</th>
-                  <th>Stock</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.map(p => (
-                  Object.keys(p.stock || {}).map((sizeKey) => (
-                    <tr key={`${p.id}_${sizeKey}`}>
-                      <td>{p.name}</td>
-                      <td>{sizeKey}</td>
-                      <td>
-                        <input type="number" defaultValue={p.stock[sizeKey] || 0} onBlur={(e) => handleStockChange(p.id, sizeKey, e.target.value)} style={{ width: 100, padding: 6 }} />
-                      </td>
-                    </tr>
-                  ))
-                ))}
-              </tbody>
-            </table>
+          <div style={{ display: 'grid', gap: 12 }}>
+            {/* Preview grid: mini-cards showing image and stock summary */}
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              {localProducts.map((lp, idx) => {
+                // find associated firestore product
+                const found = products.find(x => x.name === lp.name || (x.image && lp.image && x.image.split('/').pop() === lp.image.split('/').pop()));
+                const key = found ? found.id : `local_${idx}`;
+                const stockObj = (found ? found.stock : editStocks[key]) || {};
+                const totalStock = Object.values(stockObj).reduce((s, v) => s + (Number(v) || 0), 0);
+                const displayImage = found ? found.image || lp.image : lp.image;
+                return (
+                  <div key={key} style={{ width: 180, border: '1px solid #eee', borderRadius: 8, overflow: 'hidden', background: '#fff', position: 'relative' }}>
+                    <div style={{ height: 100, background: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {displayImage ? <img src={displayImage} alt={lp.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'cover' }} /> : <div style={{ color: '#999' }}>No image</div>}
+                    </div>
+                    <div style={{ padding: 8 }}>
+                      <div style={{ fontWeight: 700 }}>{lp.name}</div>
+                      <div style={{ fontSize: 12, color: '#666', marginTop: 6 }}>Stock total: <strong>{totalStock}</strong></div>
+                      <div style={{ marginTop: 8 }}>
+                        {(lp.sizes || Object.keys(stockObj || {})).map((sk, i) => (
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginTop: 4, alignItems: 'center', gap: 8 }}>
+                            <div style={{ flex: 1 }}>{sk}</div>
+                            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                              <button type="button" onClick={() => adjustStock(key, sk, -1)} style={{ padding: '4px 8px' }}>−</button>
+                              <input type="number" value={(editStocks[key] && editStocks[key][sk]) != null ? editStocks[key][sk] : (stockObj && stockObj[sk] != null ? stockObj[sk] : 0)} onChange={(e) => handleStockChange(key, sk, e.target.value)} style={{ width: 56, padding: 4, textAlign: 'center' }} />
+                              <button type="button" onClick={() => adjustStock(key, sk, 1)} style={{ padding: '4px 8px' }}>+</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, padding: 8, justifyContent: 'flex-end' }}>
+                      <button onClick={() => saveProductStock(key, lp)} style={{ padding: '6px 10px', background: '#2ecc71', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Guardar</button>
+                    </div>
+                    {/* overlay removed here; SIN STOCK message shown on storefront cards (ProductGrid) */}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ maxHeight: 320, overflow: 'auto' }}>
+              <table className="product-table">
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th>Talla</th>
+                    <th>Stock</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.map(p => (
+                    Object.keys(p.stock || {}).map((sizeKey) => (
+                      <tr key={`${p.id}_${sizeKey}`}>
+                        <td>{p.name}</td>
+                        <td>{sizeKey}</td>
+                        <td>
+                          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                            <button type="button" onClick={() => adjustStock(p.id, sizeKey, -1)} style={{ padding: '4px 8px' }}>−</button>
+                            <input type="number" value={(editStocks[p.id] && editStocks[p.id][sizeKey]) != null ? editStocks[p.id][sizeKey] : (p.stock && p.stock[sizeKey] != null ? p.stock[sizeKey] : 0)} onChange={(e) => handleStockChange(p.id, sizeKey, e.target.value)} style={{ width: 100, padding: 6, textAlign: 'center' }} />
+                            <button type="button" onClick={() => adjustStock(p.id, sizeKey, 1)} style={{ padding: '4px 8px' }}>+</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -334,37 +451,44 @@ export default function AdminDashboard() {
           <button onClick={exportOrdersCSV} style={{ marginLeft: 'auto' }} className="btn-primary">Exportar CSV</button>
         </div>
 
-        <div style={{ maxHeight: 420, overflow: 'auto' }}>
-          <table className="orders-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Fecha</th>
-                <th>Items</th>
-                <th>Total</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredOrders.map(o => (
-                <tr key={o.id}>
-                  <td>{o.id}</td>
-                  <td>{o.date ? new Date(o.date).toLocaleString() : '—'}</td>
-                  <td>{(o.items || []).map((it, i) => <div key={i}>{it.name} {it.size ? `(${it.size})` : ''} x{it.quantity || 1}</div>)}</td>
-                  <td>${(o.total || 0).toLocaleString()}</td>
-                  <td>
-                    <select value={o.status || 'pending'} onChange={(e) => handleOrderStatusChange(o.id, e.target.value)}>
-                      <option value="pending">Pendiente</option>
-                      <option value="processing">En proceso</option>
-                      <option value="shipped">Enviado</option>
-                      <option value="completed">Completado</option>
-                      <option value="cancelled">Cancelado</option>
-                    </select>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+          {['pending','processing','shipped','completed','cancelled'].map(statusKey => (
+            <div key={statusKey} style={{ flex: 1, background: '#fff', padding: 12, borderRadius: 8, boxShadow: '0 4px 10px rgba(0,0,0,0.06)' }}>
+              <h4 style={{ textTransform: 'capitalize', marginTop: 0 }}>{statusKey === 'pending' ? 'Pendiente' : statusKey === 'processing' ? 'En proceso' : statusKey === 'shipped' ? 'Enviado' : statusKey === 'completed' ? 'Completado' : 'Cancelado'}</h4>
+              <div style={{ minHeight: 40 }}>
+                {filteredOrders.filter(o => (o.status || 'pending') === statusKey).length === 0 ? (
+                  <p style={{ color: '#888' }}>Sin órdenes</p>
+                ) : (
+                  filteredOrders.filter(o => (o.status || 'pending') === statusKey).map(o => (
+                    <div key={o.id} style={{ border: '1px solid #eee', padding: 8, borderRadius: 6, marginBottom: 8 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <span style={{ width: 12, height: 12, borderRadius: 12, display: 'inline-block', background: statusKey === 'completed' ? '#2ecc71' : statusKey === 'shipped' ? '#3498db' : statusKey === 'processing' ? '#f39c12' : statusKey === 'cancelled' ? '#e74c3c' : '#95a5a6' }}></span>
+                          <div style={{ fontWeight: '700' }}>{o.id.substring(0,8)}...</div>
+                        </div>
+                        <div style={{ fontSize: '0.85em', color: '#666' }}>{o.date ? new Date(o.date).toLocaleString() : '—'}</div>
+                      </div>
+                      <div style={{ marginTop: 8, fontSize: '0.9em' }}>
+                        {(o.items || []).map((it, idx) => (
+                          <div key={idx}>{it.name} {it.size ? `(${it.size})` : ''} x{it.quantity || 1}</div>
+                        ))}
+                      </div>
+                      <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ fontWeight: '700' }}>${(o.total || 0).toLocaleString()}</div>
+                        <select value={o.status || 'pending'} onChange={(e) => handleOrderStatusChange(o.id, e.target.value)}>
+                          <option value="pending">Pendiente</option>
+                          <option value="processing">En proceso</option>
+                          <option value="shipped">Enviado</option>
+                          <option value="completed">Completado</option>
+                          <option value="cancelled">Cancelado</option>
+                        </select>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
