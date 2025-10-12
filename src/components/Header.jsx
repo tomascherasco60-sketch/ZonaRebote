@@ -4,7 +4,7 @@ export default function Header({ cartCount, onToggleCart }) {
     <header className="header">
       <div className="header-content">
         <div className="logo">
-          <img src="public/img/1.png" alt="Logo GLOWTEMPLE" />
+          <img src="/img/1.png" alt="Logo GLOWTEMPLE" />
           GLOWTEMPLE
         </div>
         <nav>
