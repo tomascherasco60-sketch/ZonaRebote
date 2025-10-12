@@ -18,7 +18,7 @@ export default function App() {
   const [cartOpen, setCartOpen] = useState(false);
   const [showFrame, setShowFrame] = useState(false);
   const [lastOrderTotal, setLastOrderTotal] = useState(null);
-  const alias = 'zona.rebote.mp';
+  const alias = 'tomas.799.estimo.mp';
   const [stockMap, setStockMap] = useState({});
 
   // subscribe to products collection to build a map { name: { id, stock } }
@@ -163,6 +163,9 @@ export default function App() {
               </p>
               <p>
                 Total de la compra: <strong>${((lastOrderTotal != null) ? lastOrderTotal : total).toLocaleString()}</strong>
+              </p>
+              <p>
+               Nombre del titular:<strong>Tomas Federico Cherasco</strong> 
               </p>
 
               <div className="frame-actions">

@@ -175,13 +175,7 @@ export default function Promo({ addToCart }) {
                 <div className="main-image">
                   <img src={promoData[selectedPromo].images[mainIndex] || promoData[selectedPromo].images[0]} alt={promoData[selectedPromo].title} />
                 </div>
-                <div className="thumbs-row">
-                  {promoData[selectedPromo].images.map((img, idx) => (
-                    <button key={idx} type="button" className={`thumb-btn ${mainIndex === idx ? 'selected' : ''}`} onClick={() => setMainIndex(idx)}>
-                      <img src={img} alt={pantNames[idx] || `Modelo ${idx+1}`} />
-                    </button>
-                  ))}
-                </div>
+                
                 <div className="promo-info">
                   <p className="promo-frame-desc">{promoData[selectedPromo].text}</p>
                   <p className="promo-frame-price">Precio: <strong>${promoData[selectedPromo].price.toLocaleString()}</strong></p>

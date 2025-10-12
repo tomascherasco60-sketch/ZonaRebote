@@ -4,8 +4,8 @@ export default function Header({ cartCount, onToggleCart }) {
     <header className="header">
       <div className="header-content">
         <div className="logo">
-          <img src="https://raw.githubusercontent.com/tomascherasco60-sketch/ZonaRebote/refs/heads/main/public/img/Logo%20de%20ZonaRebote.png" alt="Logo ZonaRebote" />
-          ZONAREBOTE
+          <img src="public/img/1.png" alt="Logo GLOWTEMPLE" />
+          GLOWTEMPLE
         </div>
         <nav>
           <ul>
