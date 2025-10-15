@@ -23,6 +23,18 @@ export default function App() {
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
 
+  // --- NEW: disable any quick/dev login in production ---
+  const DISABLE_QUICK_DEV = true;
+
+  useEffect(() => {
+    if (DISABLE_QUICK_DEV && process.env.NODE_ENV === 'production') {
+      // remove any leftover quick login button injected by components (safety net)
+      const el = document.getElementById('quick-dev-button');
+      if (el) el.remove();
+      // if you use other ids/classes for the quick button, add them here
+    }
+  }, []);
+
   // subscribe to products collection to build a map { name: { id, stock } }
   useEffect(() => {
     const ref = collection(db, 'products');
@@ -143,7 +155,8 @@ export default function App() {
 
   return (
     <>
-      <Header cartCount={cart.length} onToggleCart={() => setCartOpen(!cartOpen)} />
+      {/* Pass disableQuickDev so child components can hide any quick/dev-login UI */}
+      <Header cartCount={cart.length} onToggleCart={() => setCartOpen(!cartOpen)} disableQuickDev={DISABLE_QUICK_DEV} />
       <Hero />
 
   <ProductGrid products={products} addToCart={addToCart} stockMap={stockMap} loading={loadingProducts} />

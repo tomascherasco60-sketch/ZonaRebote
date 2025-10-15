@@ -3,8 +3,8 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../config/firebase';
 
 // Simple admin credentials for development (hardcoded)
-const ADMIN_EMAIL = 'admin@example.com';
-const ADMIN_PASSWORD = 'admin123';
+const ADMIN_EMAIL = 'juan.ignacio.grellet@gmail.com';
+const ADMIN_PASSWORD = 'Juancho2401';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
