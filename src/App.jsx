@@ -9,7 +9,7 @@ import Features from './components/Featuress.jsx';
 import FAQ from './components/FAQ.jsx';
 import Footer from './components/Footer.jsx';
 import CartModal from './components/CartModal.jsx';
-import { products } from './data/products.js';
+// remove local products import - we'll load products from Firestore
 // consolidated firestore imports above
 import Promo from './components/Promo.jsx';
 
@@ -20,12 +20,15 @@ export default function App() {
   const [lastOrderTotal, setLastOrderTotal] = useState(null);
   const alias = 'tomas.799.estimo.mp';
   const [stockMap, setStockMap] = useState({});
+  const [products, setProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
 
   // subscribe to products collection to build a map { name: { id, stock } }
   useEffect(() => {
     const ref = collection(db, 'products');
     const unsub = onSnapshot(ref, snap => {
       const map = {};
+      const items = [];
       snap.forEach(d => {
         const data = d.data();
         const meta = { id: d.id, stock: data.stock || {} };
@@ -40,7 +43,11 @@ export default function App() {
             map[data.image] = meta;
           }
         }
+        // push full product object for ProductGrid (include id)
+        items.push({ id: d.id, ...data });
       });
+      setProducts(items);
+      setLoadingProducts(false);
       setStockMap(map);
     }, err => console.error('Error listening products', err));
     return () => unsub();
@@ -139,7 +146,7 @@ export default function App() {
       <Header cartCount={cart.length} onToggleCart={() => setCartOpen(!cartOpen)} />
       <Hero />
 
-  <ProductGrid products={products} addToCart={addToCart} stockMap={stockMap} />
+  <ProductGrid products={products} addToCart={addToCart} stockMap={stockMap} loading={loadingProducts} />
       <Promo addToCart={addToCart} />
       <Features />
       <FAQ />
