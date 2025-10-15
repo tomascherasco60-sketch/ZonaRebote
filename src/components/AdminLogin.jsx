@@ -51,7 +51,7 @@ export default function AdminLogin() {
         <input placeholder="Contraseña" type="password" value={password} onChange={e => setPassword(e.target.value)} style={{ width: '100%', padding: 10, marginBottom: 8 }} />
         <div style={{ display: 'flex', gap: 8 }}>
           <button type="submit" style={{ flex: 1, padding: 10, background: '#2ecc71', color: '#fff', border: 'none', borderRadius: 4 }}>Entrar</button>
-          <button type="button" onClick={handleQuick} style={{ padding: 10, background: '#f39c12', color: '#fff', border: 'none', borderRadius: 4 }}>Quick (dev)</button>
+        
         </div>
       </form>
     </div>
