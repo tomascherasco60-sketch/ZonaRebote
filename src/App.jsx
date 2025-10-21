@@ -87,6 +87,21 @@ export default function App() {
       return;
     }
 
+    // Verificar stock nuevamente antes de finalizar (doble validación)
+    const stockIssues = [];
+    cart.forEach(item => {
+      if (!item.size) {
+        stockIssues.push(`${item.name} - Sin talle seleccionado`);
+      } else if (!stockMap[item.name] || !stockMap[item.name].stock || stockMap[item.name].stock[item.size] <= 0) {
+        stockIssues.push(`${item.name} (${item.size}) - Sin stock`);
+      }
+    });
+
+    if (stockIssues.length > 0) {
+      alert(`Problemas de stock:\n${stockIssues.join('\n')}\n\nPor favor actualizá tu carrito.`);
+      return;
+    }
+
     const items = cart.map(it => ({
       name: it.name || 'Item',
       price: typeof it.price === 'number' ? it.price : Number(it.price) || 0,
@@ -114,12 +129,15 @@ export default function App() {
       const ordersRef = collection(db, 'orders');
       await addDoc(ordersRef, order);
 
+      // Actualizar stock en Firebase
       for (const it of items) {
         const meta = stockMap[it.name];
         if (!meta || !meta.id) continue;
         const pRef = doc(db, 'products', meta.id);
         const sizeKey = it.size || 'U';
-        await setDoc(pRef, { stock: { [sizeKey]: increment(-1 * (it.quantity || 1)) } }, { merge: true });
+        await updateDoc(pRef, { 
+          [`stock.${sizeKey}`]: increment(-1 * (it.quantity || 1)) 
+        });
       }
 
       await setDoc(doc(db, 'admin_meta', 'stats'), {
@@ -172,6 +190,7 @@ export default function App() {
         onApplyCoupon={applyCoupon}
         discountApplied={discountApplied}
         onFinalize={finalizePurchase}
+        stockMap={stockMap} // ← PROP AGREGADO
       />
 
       {showFrame && (

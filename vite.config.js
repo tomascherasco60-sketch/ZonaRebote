@@ -1,7 +1,15 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react-swc'
 
-// https://vite.dev/config/
+// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  base: './', // 👈 clave para que funcione en Vercel
+  build: {
+    outDir: 'dist', // carpeta del build
+  },
+  server: {
+    port: 5173,
+    open: true,
+  },
 })
