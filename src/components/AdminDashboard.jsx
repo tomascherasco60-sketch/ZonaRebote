@@ -9,9 +9,11 @@ import {
   updateDoc,
   deleteDoc,
   getFirestore,
+  writeBatch,
 } from "firebase/firestore";
-import initFirebase from "../firebase"; // ajustá según tu estructura si hace falta
+import initFirebase from "../firebase";
 import "../App.css";
+import "./AdminDashboard.css";
 
 export default function AdminDashboard() {
   // inicializar firebase DB
@@ -26,6 +28,7 @@ export default function AdminDashboard() {
   // datos
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [loadingDelete, setLoadingDelete] = useState(false);
 
   // UI / formularios
   const [newProduct, setNewProduct] = useState({ name: "", price: "", image: "", stock: {} });
@@ -114,6 +117,57 @@ export default function AdminDashboard() {
     }
   };
 
+  // ---------- ORDER ACTIONS ----------
+
+  const handleUpdateOrderStatus = async (orderId, newStatus) => {
+    try {
+      await updateDoc(doc(db, "orders", orderId), { status: newStatus });
+      alert("Estado actualizado");
+    } catch (err) {
+      console.error(err);
+      alert("Error actualizando estado");
+    }
+  };
+
+  // NUEVA FUNCIÓN: Borrar pedidos completados y cancelados
+  const handleDeleteCompletedCancelledOrders = async () => {
+    const ordersToDelete = orders.filter(order => 
+      order.status === 'completed' || order.status === 'cancelled'
+    );
+
+    if (ordersToDelete.length === 0) {
+      alert("No hay pedidos completados o cancelados para eliminar.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `¿Estás seguro de que querés eliminar ${ordersToDelete.length} pedidos (completados y cancelados)? Esta acción es irreversible.`
+    );
+
+    if (!confirmed) return;
+
+    setLoadingDelete(true);
+
+    try {
+      const batch = writeBatch(db);
+      
+      ordersToDelete.forEach(order => {
+        const orderRef = doc(db, "orders", order.id);
+        batch.delete(orderRef);
+      });
+
+      await batch.commit();
+      alert(`✅ Se eliminaron ${ordersToDelete.length} pedidos correctamente.`);
+    } catch (err) {
+      console.error("Error eliminando pedidos:", err);
+      alert("❌ Error al eliminar los pedidos. Intentá nuevamente.");
+    } finally {
+      setLoadingDelete(false);
+    }
+  };
+
+  // ---------- STOCK ACTIONS ----------
+
   // editar stock localmente (controlled)
   const handleEditStockInput = (productId, sizeKey, value) => {
     setProductEdits((prev) => {
@@ -185,18 +239,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // ---------- ORDERS ----------
-
-  const handleUpdateOrderStatus = async (orderId, newStatus) => {
-    try {
-      await updateDoc(doc(db, "orders", orderId), { status: newStatus });
-      alert("Estado actualizado");
-    } catch (err) {
-      console.error(err);
-      alert("Error actualizando estado");
-    }
-  };
-
   // ---------- AUTH LOGOUT ----------
   const handleLogout = async () => {
     try {
@@ -224,6 +266,11 @@ export default function AdminDashboard() {
       const dbv = b.date?.toMillis ? b.date.toMillis() : 0;
       return dbv - da;
     });
+
+  // Contador de pedidos completados y cancelados
+  const completedCancelledCount = orders.filter(order => 
+    order.status === 'completed' || order.status === 'cancelled'
+  ).length;
 
   if (loadingAuth) return <div style={{ padding: 24 }}>Cargando...</div>;
   if (!authUser) return <div style={{ padding: 40, textAlign: "center" }}><h2>No estás autorizado</h2><p>Iniciá sesión con una cuenta de administrador.</p></div>;
@@ -317,7 +364,20 @@ export default function AdminDashboard() {
 
         {/* ORDERS PANEL */}
         <div className="panel">
-          <h2>Pedidos</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 style={{ margin: 0 }}>Pedidos</h2>
+            <button 
+              className="btn-danger" 
+              onClick={handleDeleteCompletedCancelledOrders}
+              disabled={loadingDelete || completedCancelledCount === 0}
+              style={{ 
+                opacity: (loadingDelete || completedCancelledCount === 0) ? 0.6 : 1,
+                cursor: (loadingDelete || completedCancelledCount === 0) ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {loadingDelete ? 'Eliminando...' : `Borrar completados/cancelados (${completedCancelledCount})`}
+            </button>
+          </div>
 
           <div className="orders-controls" style={{ marginBottom: 10 }}>
             <input placeholder="Buscar por id, cliente o total" value={ordersQuery} onChange={(e) => setOrdersQuery(e.target.value)} style={{ padding: 8, borderRadius: 8, border: "1px solid #e6eef8", flex: 1 }} />
